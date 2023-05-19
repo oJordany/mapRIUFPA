@@ -39,6 +39,7 @@ def writeHtmlMap(content):
 
 
 def generateHtmlStructure(site, i, j, summary):
+    ToggleContentIsOpened = False
     newI = i+1
     newJ = j+1
     newSummary = summary
@@ -48,16 +49,36 @@ def generateHtmlStructure(site, i, j, summary):
         for mediaWell in mediaWells:
             newSummary += f'.{newJ}' if summary != '' else f'{newJ}'
             mediaHeading = mediaWell.find('h4', {'class': 'media-heading'})
-            mediaHeading = re.sub('h4', f'h{newI}', str(mediaHeading))
+            mediaHeading = re.sub('h4', f'h{newI} style="display: inline-block;"', str(mediaHeading))
             mediaHeading = re.sub(r'\n', f'', str(mediaHeading))
-            writeHtmlMap(f'''<!-- Botão do Toggle -->
-<button type="button" class="btn btn-default" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+            if re.search(fr'{summary}.\d+', newSummary) and not ToggleContentIsOpened:
+                ToggleContentIsOpened = True
+                writeHtmlMap(f'''<!-- Conteúdo do Toggle -->
+<div id="toggle-content-{summary}" class="collapse">
+<div>
+<!-- Botão do Toggle -->
+<button style="display: inline-block; margin-left: {20*newJ}px;" type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
 <span class="glyphicon glyphicon-chevron-down"></span>
 </button>
 {mediaHeading}
+</div>
+''')
+            else:
+                writeHtmlMap(f'''<!-- Botão do Toggle -->
+<div>
+<button type="button" style="display: inline-block;" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<span class="glyphicon glyphicon-chevron-down"></span>
+</button>
+{mediaHeading}
+</div>
 ''')
             generateHtmlStructure(mediaWell, newI, 0, newSummary)
+            aux = newSummary
             newSummary = summary
+            print(newSummary, '==',aux)
+            if newSummary == aux[:-2]:
+                writeHtmlMap('''</div>
+''')
             newJ += 1
 
 
