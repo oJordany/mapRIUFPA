@@ -38,54 +38,74 @@ def writeHtmlMap(content):
         file.write(content)
 
 
+def deleteHtmlMapRows(file_name, indexes):
+    with open(file_name, 'r+') as arquivo:
+        rows = arquivo.readlines()
+        
+        for index in sorted(indexes, reverse=True):
+            if -index <= len(rows):
+                del rows[index]
+        
+        arquivo.seek(0)
+        arquivo.writelines(rows)
+        arquivo.truncate()
+
+
 def generateHtmlStructure(site, i, j, summary):
     ToggleContentIsOpened = False
     newI = i+1
     newJ = j+1
-    aux = summary
     newSummary = summary
     mediaList = site.find('ul', {'class': 'media-list'})
     if mediaList:
         mediaWells = mediaList.find_all('li', {'class': 'media well'}, recursive=False)
         for mediaWell in mediaWells:
-            newSummary += f'.{newJ}' if summary != '' else f'{newJ}'
+            newSummary += f'-{newJ}' if summary != '' else f'{newJ}'
             mediaHeading = mediaWell.find('h4', {'class': 'media-heading'})
-            mediaHeading = re.sub('h4', f'h{newI} style="display: inline-block;"', str(mediaHeading))
+            mediaHeading = re.sub('h4', f'h{newI} style="display: inline;"', str(mediaHeading))
+            mediaHeading = re.sub(r'href="(/handle/\d+/\d+)"', r'href="<%= request.getContextPath() %>\1"', str(mediaHeading))
             mediaHeading = re.sub(r'\n', f'', str(mediaHeading))
-            print('newSumarry =', newSummary)
-            print('aux =', aux, '\n')
-            if newSummary.count('.') == aux.count('.') and ToggleContentIsOpened:
-                writeHtmlMap('''</div>
-''')
-            if re.search(fr'{summary}.\d+', newSummary) and not ToggleContentIsOpened:
+            if re.search(fr'{summary}-\d+', newSummary) and not ToggleContentIsOpened:
                 ToggleContentIsOpened = True
-                writeHtmlMap(f'''<!-- Conteúdo do Toggle -->
+                writeHtmlMap(f'''<!-- Conteúdo do Toggle {summary}-->
 <div id="toggle-content-{summary}" class="collapse">
-<!-- Botão do Toggle -->
-<button style="margin-left: {20*(newI-1)}px;" type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
-<span class="glyphicon glyphicon-chevron-down"></span>
-{mediaHeading}
+<!-- Botão do Toggle {newSummary}-->
+<div style="display:block;margin-left: {20*(newI-1)}px;margin-bottom:10px;">
+<button type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<span class="glyphicon glyphicon-chevron-right"></span>
 </button>
+{mediaHeading}
+</div>
 ''')
             elif ToggleContentIsOpened:                
-                writeHtmlMap(f'''<!-- Botão do Toggle -->
-<button type="button" style="margin-left: {20*(newI-1)}" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
-<span class="glyphicon glyphicon-chevron-down"></span>
-{mediaHeading}
+                writeHtmlMap(f'''<!-- Botão do Toggle {newSummary}-->
+<div style="display:block;margin-left: {20*(newI-1)}px;margin-bottom:10px;">
+<button type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<span class="glyphicon glyphicon-chevron-right"></span>
 </button>
+{mediaHeading}
 </div>
 ''')    
             else:
-                writeHtmlMap(f'''<!-- Botão do Toggle -->
+                writeHtmlMap(f'''<!-- Botão do Toggle {newSummary}-->
+<div style="display:block; margin-bottom:10px;">
 <button type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
-<span class="glyphicon glyphicon-chevron-down"></span>
-{mediaHeading}
+<span class="glyphicon glyphicon-chevron-right"></span>
 </button>
+{mediaHeading}
+</div>
 ''')        
-            aux = newSummary
-            generateHtmlStructure(mediaWell, newI, 0, newSummary)
+            previousSummary = generateHtmlStructure(mediaWell, newI, 0, newSummary)
+            print('previousSummary:', previousSummary, '==', 'newSummary:', newSummary,'\n')
+            if not previousSummary:
+                writeHtmlMap('''</div>
+''')
+                ToggleContentIsOpened = True
             newSummary = summary
             newJ += 1
+    else:
+        deleteHtmlMapRows('mapRIUFPA.jsp', [-5,-4,-3])
+        return newSummary
 
 
 def getAllComunitiesAndCollections():
@@ -96,7 +116,7 @@ def getAllComunitiesAndCollections():
 // Adicionar evento de clique ao botão do toggle
 $('.btn').click(function(){
 // Alterar a classe do ícone do toggle
-$(this).find('.glyphicon').toggleClass('glyphicon-chevron-down glyphicon-chevron-up');
+$(this).find('.glyphicon').toggleClass('glyphicon-chevron-down glyphicon-chevron-right');
 });
 </script>
 </dspace:layout>''')
