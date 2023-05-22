@@ -42,6 +42,7 @@ def generateHtmlStructure(site, i, j, summary):
     ToggleContentIsOpened = False
     newI = i+1
     newJ = j+1
+    aux = summary
     newSummary = summary
     mediaList = site.find('ul', {'class': 'media-list'})
     if mediaList:
@@ -51,34 +52,39 @@ def generateHtmlStructure(site, i, j, summary):
             mediaHeading = mediaWell.find('h4', {'class': 'media-heading'})
             mediaHeading = re.sub('h4', f'h{newI} style="display: inline-block;"', str(mediaHeading))
             mediaHeading = re.sub(r'\n', f'', str(mediaHeading))
+            print('newSumarry =', newSummary)
+            print('aux =', aux, '\n')
+            if newSummary.count('.') == aux.count('.') and ToggleContentIsOpened:
+                writeHtmlMap('''</div>
+''')
             if re.search(fr'{summary}.\d+', newSummary) and not ToggleContentIsOpened:
                 ToggleContentIsOpened = True
                 writeHtmlMap(f'''<!-- Conteúdo do Toggle -->
 <div id="toggle-content-{summary}" class="collapse">
-<div>
 <!-- Botão do Toggle -->
-<button style="display: inline-block; margin-left: {20*newJ}px;" type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<button style="margin-left: {20*(newI-1)}px;" type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
 <span class="glyphicon glyphicon-chevron-down"></span>
-</button>
 {mediaHeading}
-</div>
+</button>
 ''')
+            elif ToggleContentIsOpened:                
+                writeHtmlMap(f'''<!-- Botão do Toggle -->
+<button type="button" style="margin-left: {20*(newI-1)}" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<span class="glyphicon glyphicon-chevron-down"></span>
+{mediaHeading}
+</button>
+</div>
+''')    
             else:
                 writeHtmlMap(f'''<!-- Botão do Toggle -->
-<div>
-<button type="button" style="display: inline-block;" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
+<button type="button" class="btn btn-link" data-toggle="collapse" data-target="#toggle-content-{newSummary}">
 <span class="glyphicon glyphicon-chevron-down"></span>
-</button>
 {mediaHeading}
-</div>
-''')
-            generateHtmlStructure(mediaWell, newI, 0, newSummary)
+</button>
+''')        
             aux = newSummary
+            generateHtmlStructure(mediaWell, newI, 0, newSummary)
             newSummary = summary
-            print(newSummary, '==',aux)
-            if newSummary == aux[:-2]:
-                writeHtmlMap('''</div>
-''')
             newJ += 1
 
 
