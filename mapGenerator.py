@@ -46,13 +46,16 @@ def deleteHtmlMapRows(file_name, indexes):
             if -index <= len(rows):
                 del rows[index]
         
+        spanRow = rows[-3]
+        spanRow = re.sub(r'<span', '<span style="padding: 13px 7px; margin: 2px 5px;"', spanRow)
+        rows[-3] = spanRow
         arquivo.seek(0)
         arquivo.writelines(rows)
         arquivo.truncate()
 
 
-def generateHtmlStructure(site, i, j, summary):
-    ToggleContentIsOpened = False
+def generateHtmlStructure(site, i, j, summary, subcommunity=False):
+    ToggleContentIsOpened = False if not subcommunity else True
     newI = i+1
     newJ = j+1
     newSummary = summary
@@ -62,10 +65,10 @@ def generateHtmlStructure(site, i, j, summary):
         for mediaWell in mediaWells:
             newSummary += f'-{newJ}' if summary != '' else f'{newJ}'
             mediaHeading = mediaWell.find('h4', {'class': 'media-heading'})
-            mediaHeading = re.sub('h4', f'h{newI} style="display: inline;"', str(mediaHeading))
+            mediaHeading = re.sub('h4', f'h4 style="display: inline;"', str(mediaHeading))
             mediaHeading = re.sub(r'href="(/handle/\d+/\d+)"', r'href="<%= request.getContextPath() %>\1"', str(mediaHeading))
             mediaHeading = re.sub(r'\n', f'', str(mediaHeading))
-            if re.search(fr'{summary}-\d+', newSummary) and not ToggleContentIsOpened:
+            if re.search(fr'{summary}-\d+', newSummary) and not ToggleContentIsOpened and not subcommunity:
                 ToggleContentIsOpened = True
                 writeHtmlMap(f'''<!-- Conteúdo do Toggle {summary}-->
 <div id="toggle-content-{summary}" class="collapse">
@@ -101,16 +104,25 @@ def generateHtmlStructure(site, i, j, summary):
                 writeHtmlMap('''</div>
 ''')
                 ToggleContentIsOpened = True
+
+            nextSibling = mediaList.find_next_sibling('ul', 'media-list')
             newSummary = summary
+            if nextSibling:
+                nextSiblingExtracted = nextSibling.extract()
+                newHtml = f'<div>{nextSiblingExtracted.prettify()}</div>'
+                soup = BeautifulSoup(newHtml,'html.parser')
+                generateHtmlStructure(soup, newI-1, 1, newSummary, subcommunity=True)
+                
             newJ += 1
     else:
-        deleteHtmlMapRows('mapRIUFPA.jsp', [-5,-4,-3])
+        deleteHtmlMapRows('mapRIUFPA.jsp', [-4,-3])
         return newSummary
 
 
 def getAllComunitiesAndCollections():
     response = requests.get('https://repositorio.ufpa.br/community-list')
     site = BeautifulSoup(response.content, 'html.parser')
+    site.nex
     generateHtmlStructure(site, 0, 0, '')
     writeHtmlMap('''<script>
 // Adicionar evento de clique ao botão do toggle
